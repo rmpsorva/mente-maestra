@@ -1,6 +1,6 @@
 """Hay una sola Mente Maestra.
 
-Chat, CLI y API piden la misma instancia y la misma memoria.
+Chat, CLI y API piden la misma instancia, la misma memoria y la misma voz.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ def get_mente():
     with _lock:
         if _unica is None:
             from .brain import MenteMaestra
+            from .voz import vestir
 
             mente = MenteMaestra()
             mente.identidad = {"id": ID, "nombre": NOMBRE, "marca": IDENTIDAD}
@@ -31,7 +32,7 @@ def get_mente():
             original = mente.pensar
 
             def pensar_unico(texto: str):
-                out = original(texto)
+                out = vestir(original(texto))
                 guardar(mente.memoria)
                 out["una"] = True
                 out["identidad"] = mente.identidad
