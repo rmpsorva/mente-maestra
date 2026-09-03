@@ -9,34 +9,31 @@ from . import cortex
 from . import registry as catalog
 from .client import ApiClient
 
+LENTAS = {17, 57, 58, 70, 71, 76, 93, 95}
+
 
 class MenteMaestra:
-    def __init__(self, timeout: float = 20.0):
-        self.client = ApiClient(timeout=timeout)
+    def __init__(self, timeout: float = 8.0):
+        self.client = ApiClient(timeout=timeout, retries=0)
         self.memoria: list[dict[str, Any]] = []
+        self.identidad = {"id": "mente-maestra-unica", "nombre": "Mente Maestra", "marca": "R.M.P"}
 
     def listar(self, category: str | None = None) -> list[dict]:
         apis = catalog.by_category(category) if category else catalog.APIS
         return [
-            {
-                "id": a["id"],
-                "name": a["name"],
-                "category": a["category"],
-                "auth": a["auth"],
-                "docs": a["docs"],
-                "uso": a["uso"],
-            }
+            {"id": a["id"], "name": a["name"], "category": a["category"], "auth": a["auth"], "docs": a["docs"], "uso": a["uso"]}
             for a in apis
         ]
 
     def llamar(self, api_id: int, params: dict | None = None) -> dict[str, Any]:
         api = catalog.get(api_id)
         merged = {**api.get("params", {}), **(params or {})}
-        result = self.client.fetch(api["url"], params=merged, headers=api.get("headers"))
+        budget = 3.0 if api_id in LENTAS else None
+        result = self.client.fetch(api["url"], params=merged, headers=api.get("headers"), timeout=budget)
         result["api"] = {"id": api["id"], "name": api["name"], "category": api["category"]}
         return result
 
-    def pulso(self, limit: int = 100) -> dict[str, Any]:
+    def pulso(self, limit: int = 20) -> dict[str, Any]:
         results, ok = [], 0
         for api in catalog.APIS[:limit]:
             hit = self.llamar(api["id"])
@@ -63,17 +60,33 @@ class MenteMaestra:
         geo = self.geocodificar(lugar)
         lat = geo.get("lat") or 29.7604
         lon = geo.get("lon") or -95.3698
-        clima = self.llamar(1, {"latitude": lat, "longitude": lon, "current_weather": True, "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max", "forecast_days": 7, "timezone": "auto"})
+        clima = self.llamar(
+            1,
+            {
+                "latitude": lat,
+                "longitude": lon,
+                "current_weather": True,
+                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
+                "forecast_days": 7,
+                "timezone": "auto",
+            },
+        )
+        clima_data = clima.get("data") if clima.get("ok") else None
+        if not clima.get("ok"):
+            ciudad = (geo.get("lugar") or "Houston").split(",")[0]
+            alt = self.client.fetch(f"https://wttr.in/{ciudad}", params={"format": "j1"}, timeout=6.0)
+            if alt.get("ok"):
+                clima_data = _wttr_a_meteo(alt.get("data"))
         aire = self.llamar(2, {"latitude": lat, "longitude": lon, "current": "pm10,pm2_5,us_aqi"})
         alertas = self.llamar(54, {"point": f"{lat},{lon}"})
         return {
             "generado": datetime.now(timezone.utc).isoformat(),
             "lugar": geo,
-            "clima": clima.get("data"),
-            "aire": aire.get("data"),
-            "alertas_nws": _n_features(alertas.get("data")),
+            "clima": clima_data,
+            "aire": aire.get("data") if aire.get("ok") else None,
+            "alertas_nws": _n_features(alertas.get("data") if alertas.get("ok") else None),
             "sismos_mes": _resumen_sismos(self.llamar(5).get("data")),
-            "lectura": _leer_clima(clima.get("data"), geo),
+            "lectura": _leer_clima(clima_data, geo),
         }
 
     def mercado(self) -> dict[str, Any]:
@@ -81,29 +94,33 @@ class MenteMaestra:
         crypto = self.llamar(15, {"ids": "bitcoin,ethereum,solana", "vs_currencies": "usd", "include_24hr_change": "true"})
         fear = self.llamar(72, {"limit": 1})
         fees = self.llamar(71)
-        pib = self.llamar(11, {"format": "json", "per_page": 3})
         return {
             "generado": datetime.now(timezone.utc).isoformat(),
-            "fx_usd": fx.get("data"),
-            "crypto": crypto.get("data"),
-            "miedo_codicia": fear.get("data"),
-            "fees_btc": fees.get("data"),
-            "pib_usa": pib.get("data"),
-            "lectura": _leer_mercado(fx.get("data"), crypto.get("data"), fear.get("data")),
+            "fx_usd": fx.get("data") if fx.get("ok") else None,
+            "crypto": crypto.get("data") if crypto.get("ok") else None,
+            "miedo_codicia": fear.get("data") if fear.get("ok") else None,
+            "fees_btc": fees.get("data") if fees.get("ok") else {"omitido": fees.get("error") or fees.get("status")},
+            "lectura": _leer_mercado(
+                fx.get("data") if fx.get("ok") else None,
+                crypto.get("data") if crypto.get("ok") else None,
+                fear.get("data") if fear.get("ok") else None,
+            ),
         }
 
     def energia(self) -> dict[str, Any]:
         carbon = self.llamar(55)
-        return {"carbon_uk": carbon.get("data"), "lectura": _leer_carbon(carbon.get("data"))}
+        return {"carbon_uk": carbon.get("data"), "lectura": _leer_carbon(carbon.get("data") if carbon.get("ok") else None)}
 
     def salud(self, tema: str = "diabetes") -> dict[str, Any]:
         trials = self.llamar(62, {"query.term": tema, "pageSize": 3})
-        return {"trials": trials.get("data"), "lectura": f"Ensayos clínicos abiertos ligados a '{tema}' (ClinicalTrials.gov)."}
+        return {"trials": trials.get("data") if trials.get("ok") else None, "lectura": f"Ensayos clínicos abiertos ligados a '{tema}' (ClinicalTrials.gov)."}
 
     def transito(self, lat: float = 29.76, lon: float = -95.37) -> dict[str, Any]:
         sky = self.llamar(57, {"lamin": lat - 0.5, "lomin": lon - 0.6, "lamax": lat + 0.5, "lomax": lon + 0.6})
         data = sky.get("data") or {}
-        n = len((data.get("states") or [])) if isinstance(data, dict) else 0
+        n = len((data.get("states") or [])) if isinstance(data, dict) and sky.get("ok") else 0
+        if not sky.get("ok"):
+            return {"aviones_zona": None, "lectura": "OpenSky no respondió a tiempo; no bloquea el juicio."}
         return {"aviones_zona": n, "lectura": f"OpenSky ve {n} aeronaves cerca del punto."}
 
     def conocimiento(self, tema: str) -> dict[str, Any]:
@@ -113,21 +130,25 @@ class MenteMaestra:
         lexico = self.llamar(39, {"ml": tema, "max": 8})
         return {
             "tema": tema,
-            "wikipedia": wiki.get("data"),
-            "papers_openalex": papers.get("data"),
-            "modelos_hf": models.get("data"),
-            "palabras_relacionadas": lexico.get("data"),
+            "wikipedia": wiki.get("data") if wiki.get("ok") else None,
+            "papers_openalex": papers.get("data") if papers.get("ok") else {"omitido": papers.get("status")},
+            "modelos_hf": models.get("data") if models.get("ok") else None,
+            "palabras_relacionadas": lexico.get("data") if lexico.get("ok") else None,
         }
 
     def ciencia(self) -> dict[str, Any]:
         iss = self.llamar(69)
         launches = self.llamar(68, {"limit": 3})
         sismos = self.llamar(5)
-        return {"iss": iss.get("data"), "lanzamientos": launches.get("data"), "sismos_mes": _resumen_sismos(sismos.get("data"))}
+        return {
+            "iss": iss.get("data") if iss.get("ok") else None,
+            "lanzamientos": launches.get("data") if launches.get("ok") else None,
+            "sismos_mes": _resumen_sismos(sismos.get("data")),
+        }
 
     def media_rmp(self) -> dict[str, Any]:
         itunes = self.llamar(79, {"term": "reggaeton", "entity": "song", "limit": 3})
-        return {"itunes": itunes.get("data"), "lectura": "Señal iTunes de reggaeton para el universo R.M.P."}
+        return {"itunes": itunes.get("data") if itunes.get("ok") else None, "lectura": "Señal iTunes de reggaeton para el universo R.M.P."}
 
     def pensar(self, texto: str) -> dict[str, Any]:
         percepcion = cortex.percibir(texto)
@@ -207,10 +228,33 @@ def _resumen_sismos(data: Any) -> dict[str, Any]:
     return {"count": len(features), "destacados": tops}
 
 
+def _wttr_a_meteo(data: Any) -> dict[str, Any] | None:
+    if not isinstance(data, dict):
+        return None
+    cur = (data.get("current_condition") or [{}])[0]
+    days = data.get("weather") or []
+    try:
+        temp = float(cur.get("temp_C") or 0)
+        wind = float(cur.get("windspeedKmph") or 0)
+    except (TypeError, ValueError):
+        return None
+    maxs, mins, rain = [], [], []
+    for d in days[:7]:
+        try:
+            maxs.append(float(d.get("maxtempC") or 0))
+            mins.append(float(d.get("mintempC") or 0))
+            rain.append(float((d.get("hourly") or [{}])[0].get("precipMM") or 0))
+        except (TypeError, ValueError, IndexError):
+            continue
+    return {"current_weather": {"temperature": temp, "windspeed": wind}, "daily": {"temperature_2m_max": maxs, "temperature_2m_min": mins, "precipitation_sum": rain}, "fuente": "wttr.in"}
+
+
 def _leer_clima(data: Any, geo: dict) -> str:
     if not isinstance(data, dict):
-        return "No se pudo leer el clima."
+        return "Clima no disponible (fuente saturada). Se usa el resto de señales."
     current = data.get("current_weather") or {}
+    if current.get("temperature") is None:
+        return "Clima no disponible (fuente saturada). Se usa el resto de señales."
     daily = data.get("daily") or {}
     maxs = daily.get("temperature_2m_max") or []
     mins = daily.get("temperature_2m_min") or []
@@ -220,7 +264,8 @@ def _leer_clima(data: Any, geo: dict) -> str:
         extra = f" Máxima 7d {max(maxs)}C / mínima {min(mins)}C."
     if rain:
         extra += f" Pico de lluvia {max(rain)} mm."
-    return f"Pronóstico para {geo.get('lugar')}: ahora {current.get('temperature')}C, viento {current.get('windspeed')} km/h.{extra}"
+    src = "wttr.in" if data.get("fuente") == "wttr.in" else "Open-Meteo"
+    return f"Pronóstico para {geo.get('lugar')}: ahora {current.get('temperature')}C, viento {current.get('windspeed')} km/h.{extra} Fuente {src}."
 
 
 def _leer_mercado(fx: Any, crypto: Any, fear: Any) -> str:
