@@ -1,4 +1,4 @@
-"""Interfaz de línea de comandos."""
+"""CLI de la única Mente Maestra."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import argparse
 import json
 import sys
 
-from .brain import MenteMaestra
 from .registry import CATEGORIES
+from .una import get_mente
 
 
 def _print(data) -> None:
@@ -15,60 +15,50 @@ def _print(data) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="mente-maestra",
-        description="Inteligencia que piensa con 100 APIs públicas que aportan.",
-    )
+    parser = argparse.ArgumentParser(prog="mente-maestra", description="Una sola mente. 100 APIs que aportan.")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_list = sub.add_parser("listar", help="Ver las 100 APIs")
     p_list.add_argument("--categoria", choices=CATEGORIES)
-
-    p_call = sub.add_parser("llamar", help="Llamar una API por id (1-100)")
+    p_call = sub.add_parser("llamar", help="Llamar API por id")
     p_call.add_argument("id", type=int)
-
-    p_fore = sub.add_parser("pronostico", help="Clima + aire + alertas NWS")
+    p_fore = sub.add_parser("pronostico")
     p_fore.add_argument("lugar", nargs="?", default="Houston, Texas")
-
-    sub.add_parser("mercado", help="FX + crypto + miedo/codicia + fees")
-
-    p_know = sub.add_parser("conocer", help="Papers, wiki y modelos HF")
+    sub.add_parser("mercado")
+    p_know = sub.add_parser("conocer")
     p_know.add_argument("tema", nargs="+")
-
-    p_think = sub.add_parser("pensar", help="Ciclo completo de pensamiento")
+    p_think = sub.add_parser("pensar")
     p_think.add_argument("texto", nargs="+")
     p_think.add_argument("--solo-respuesta", action="store_true")
-
-    p_ask = sub.add_parser("preguntar", help="Alias de pensar")
+    p_ask = sub.add_parser("preguntar")
     p_ask.add_argument("texto", nargs="+")
-
-    p_pulse = sub.add_parser("pulso", help="Chequea cuántas APIs responden")
+    p_pulse = sub.add_parser("pulso")
     p_pulse.add_argument("--limit", type=int, default=20)
+    sub.add_parser("quien", help="Identidad de la mente única")
 
     args = parser.parse_args(argv)
-    mind = MenteMaestra()
-    try:
-        if args.cmd == "listar":
-            _print(mind.listar(args.categoria))
-        elif args.cmd == "llamar":
-            _print(mind.llamar(args.id))
-        elif args.cmd == "pronostico":
-            _print(mind.pronostico(args.lugar))
-        elif args.cmd == "mercado":
-            _print(mind.mercado())
-        elif args.cmd == "conocer":
-            _print(mind.conocimiento(" ".join(args.tema)))
-        elif args.cmd in {"pensar", "preguntar"}:
-            thought = mind.pensar(" ".join(args.texto))
-            if args.cmd == "pensar" and getattr(args, "solo_respuesta", False):
-                print(thought.get("respuesta", ""))
-            else:
-                _print(thought)
-        elif args.cmd == "pulso":
-            _print(mind.pulso(args.limit))
-        return 0
-    finally:
-        mind.close()
+    mente = get_mente()
+    if args.cmd == "listar":
+        _print(mente.listar(args.categoria))
+    elif args.cmd == "llamar":
+        _print(mente.llamar(args.id))
+    elif args.cmd == "pronostico":
+        _print(mente.pronostico(args.lugar))
+    elif args.cmd == "mercado":
+        _print(mente.mercado())
+    elif args.cmd == "conocer":
+        _print(mente.conocimiento(" ".join(args.tema)))
+    elif args.cmd in {"pensar", "preguntar"}:
+        thought = mente.pensar(" ".join(args.texto))
+        if args.cmd == "pensar" and getattr(args, "solo_respuesta", False):
+            print(thought.get("respuesta", ""))
+        else:
+            _print(thought)
+    elif args.cmd == "pulso":
+        _print(mente.pulso(args.limit))
+    elif args.cmd == "quien":
+        _print({"una": True, **mente.identidad, "memoria": len(mente.memoria)})
+    return 0
 
 
 if __name__ == "__main__":
