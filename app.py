@@ -1,4 +1,4 @@
-"""Chat web de Mente Maestra — avatar + conversación."""
+"""Chat web — una sola Mente Maestra."""
 
 from __future__ import annotations
 
@@ -9,15 +9,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from mente_maestra import MenteMaestra
+from mente_maestra import ID, IDENTIDAD, NOMBRE, get_mente
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 
-app = FastAPI(title="Mente Maestra", version="1.2.0")
+app = FastAPI(title=NOMBRE, version="1.3.1")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-
-mind = MenteMaestra()
 
 
 class Pregunta(BaseModel):
@@ -31,13 +29,23 @@ def home():
 
 @app.get("/salud")
 def salud():
-    return {"ok": True, "nombre": "Mente Maestra", "memoria": len(mind.memoria)}
+    mente = get_mente()
+    return {
+        "ok": True,
+        "una": True,
+        "id": ID,
+        "nombre": NOMBRE,
+        "marca": IDENTIDAD,
+        "memoria": len(mente.memoria),
+    }
 
 
 @app.post("/pensar")
 def pensar(body: Pregunta):
-    out = mind.pensar(body.texto.strip())
+    out = get_mente().pensar(body.texto.strip())
     return {
+        "una": True,
+        "identidad": out.get("identidad"),
         "respuesta": out.get("respuesta", ""),
         "tesis": out.get("tesis", ""),
         "confianza": out.get("confianza", 0),
