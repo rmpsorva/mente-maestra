@@ -1,40 +1,26 @@
 # Mente Maestra
 
-100 APIs públicas **que aportan** + ciclo de pensamiento + chat con avatar R.M.P.
+**Una sola mente.** Un id, un avatar, una memoria, un ciclo de pensamiento.
+Chat, CLI y API no crean cerebros distintos: piden `get_mente()`.
 
-[rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · v1.3.0
+[rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · R.M.P · v1.3.1
 
-## Qué se conectó (y por qué)
+```python
+from mente_maestra import get_mente
 
-No se pegaron 50.000 listings. Se sumaron **50 fuentes extra** solo si dan señal nueva:
-
-| Capa | IDs | Aporte |
-| --- | --- | --- |
-| Clima / riesgo | 51-54, 56 | Altitud, inundación, marino, alertas NWS |
-| Energía | 55 | Intensidad de carbono de red |
-| Tránsito | 57-58 | Aviones OpenSky + ruta OSRM |
-| Salud | 61-64 | FDA, ClinicalTrials, OMS, Open Food Facts |
-| Crypto profunda | 70-73 | Hashrate, fees, miedo/codicia, cap global |
-| Macro | 74-76 | Stooq equity, desempleo, FMI |
-| IA | 87-89 | Hugging Face, Papers with Code, conceptos OpenAlex |
-| Media R.M.P | 79-82 | iTunes, Deezer, lyrics, SportsDB Houston |
-| Resiliencia | 86, 93-96 | Wayback, TLS, DNS, URLhaus, HIBP |
-
-Núcleo 1-50 sigue en `catalog.py`. Oleada 2 en `catalog_plus.py`. Registro único: `registry.py`.
-
-## Chat
-
-```bash
-pip install -r requirements.txt
-uvicorn app:app --reload --port 8000
+mente = get_mente()          # siempre la misma
+otra = get_mente()
+assert mente is otra         # una
+print(mente.identidad)
 ```
 
-http://127.0.0.1:8000
-
 ```bash
-python -m mente_maestra pensar "alertas en Houston y miedo de bitcoin" --solo-respuesta
-python -m mente_maestra listar --categoria energia
-python -m mente_maestra pulso --limit 30
+python -m mente_maestra quien
+python -m mente_maestra pensar "alertas en Houston y bitcoin" --solo-respuesta
+uvicorn app:app --port 8000
 ```
+
+Memoria persistente: `data/memoria.json` (las últimas 80 tesis).
+100 APIs que aportan. No hay enjambre de agentes.
 
 MIT · R.M.P 2026
