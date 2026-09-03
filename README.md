@@ -1,26 +1,31 @@
 # Mente Maestra
 
-**Una sola mente.** Un id, un avatar, una memoria, un ciclo de pensamiento.
-Chat, CLI y API no crean cerebros distintos: piden `get_mente()`.
+**Una sola mente. Voz propia.** Habla como persona. Si hay modelo local, lo usa.
 
-[rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · R.M.P · v1.3.1
+[rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · R.M.P · v1.4.0
 
-```python
-from mente_maestra import get_mente
+## Voz
 
-mente = get_mente()          # siempre la misma
-otra = get_mente()
-assert mente is otra         # una
-print(mente.identidad)
-```
+Orden de motores (el primero vivo gana):
+
+1. **Ollama** `127.0.0.1:11434`
+2. **LM Studio** `:1234/v1`
+3. **llama.cpp** `:8080/v1`
+4. **vLLM** `:8008/v1`
+5. **LocalAI** `:8081/v1`
+6. **Jan** `:1337/v1`
+7. **TabbyAPI** `:5000/v1`
+8. `OPENAI_BASE_URL` si lo pones
+
+Si ninguno responde, redacta igual con la voz local (sin alucinación de números).
 
 ```bash
-python -m mente_maestra quien
-python -m mente_maestra pensar "alertas en Houston y bitcoin" --solo-respuesta
-uvicorn app:app --port 8000
+ollama pull llama3.2
+ollama serve
+python -m mente_maestra voz
+python -m mente_maestra pensar "miedo de bitcoin" --solo-respuesta
 ```
 
-Memoria persistente: `data/memoria.json` (las últimas 80 tesis).
-100 APIs que aportan. No hay enjambre de agentes.
+Variables útiles: `OLLAMA_MODEL`, `OLLAMA_HOST`, `LMS_HOST`, `OPENAI_BASE_URL`.
 
 MIT · R.M.P 2026
