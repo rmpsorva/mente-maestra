@@ -2,23 +2,31 @@
 
 Inteligencia pública que se **alimenta de 50 APIs gratuitas** y **piensa en ciclo**: percibir → planear → recoger evidencia → reflexionar → juzgar.
 
-Proyecto **R.M.P / Real Mente Poder** · [rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · v1.1.0
+Ahora también tiene **avatar + chat** (fondo oscuro, burbujas, caja abajo), igual que una conversación aquí.
 
-## Pensar por sí misma
+Proyecto **R.M.P / Real Mente Poder** · [rmpsorva/mente-maestra](https://github.com/rmpsorva/mente-maestra) · v1.2.0
 
-`mente.pensar(pregunta)` no solo enruta. Construye una traza auditable:
+## Chat con avatar
 
-1. **Percibir** intenciones (clima, mercado, ciencia, conocimiento, lugar)
-2. **Planear** qué fuentes abrir y por qué
-3. **Actuar** contra las APIs vivas
-4. **Reflexionar** si la evidencia alcanza (confianza + huecos)
-5. **Juzgar** una tesis en lenguaje claro, sin fingir oráculo
+```bash
+git clone https://github.com/rmpsorva/mente-maestra.git
+cd mente-maestra
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app:app --reload --port 8000
+```
 
-No es un LLM de pago. Es una corteza simbólica + datos reales. Sirve como esqueleto de agente para desarrollar IA.
+Abre [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+- Avatar metálico R.M.P (`static/avatar.svg`)
+- Tus mensajes a la derecha
+- Respuestas de Mente Maestra a la izquierda, con confianza
+- Enter envía, Shift+Enter salto de línea
+
+## Pensar en terminal
 
 ```bash
 python -m mente_maestra pensar "va a llover en Houston y como esta bitcoin" --solo-respuesta
-PYTHONPATH=. python examples/pensar_demo.py
 ```
 
 ```python
@@ -27,40 +35,16 @@ from mente_maestra import MenteMaestra
 with MenteMaestra() as mente:
     out = mente.pensar("va a llover en Houston y como esta bitcoin")
     print(out["respuesta"])
-    print(out["confianza"], out["plan"], out["huecos"])
-```
-
-## Resto del núcleo
-
-- Pronóstico 7 días, AQI, amanecer, sismos
-- FX + crypto + PIB
-- Papers / wiki / Datamuse / GitHub para RAG
-- 50 APIs en [`mente_maestra/catalog.py`](mente_maestra/catalog.py)
-
-```bash
-git clone https://github.com/rmpsorva/mente-maestra.git
-cd mente-maestra
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m mente_maestra listar
-python -m mente_maestra pronostico "Houston, Texas"
-python -m mente_maestra mercado
-python -m mente_maestra pensar "qué es forecasting"
 ```
 
 ## Arquitectura
 
 ```
-mente_maestra/
-  catalog.py   50 APIs
-  client.py    HTTP
-  cortex.py    percibir / planear / reflexionar / juzgar
-  brain.py     actuar + memoria de sesión
-  cli.py       pensar | preguntar | pronostico | mercado
+app.py                 FastAPI /pensar + UI
+static/index.html      chat
+static/avatar.svg      cara metálica + gorra R.M.P
+mente_maestra/cortex.py  pensamiento
+mente_maestra/catalog.py 50 APIs
 ```
-
-## Límite honesto
-
-Piensa con reglas + evidencia abierta. No inventa cotizaciones ni papers. Si falta dato, baja la confianza y lo dice.
 
 MIT · R.M.P 2026
