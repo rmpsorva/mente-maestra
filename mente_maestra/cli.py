@@ -17,7 +17,7 @@ def _print(data) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="mente-maestra",
-        description="Inteligencia alimentada por 50 APIs públicas gratuitas.",
+        description="Inteligencia que piensa con 50 APIs públicas gratuitas.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -35,7 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     p_know = sub.add_parser("conocer", help="Papers, wiki y repos de un tema")
     p_know.add_argument("tema", nargs="+")
 
-    p_ask = sub.add_parser("preguntar", help="Pregunta en lenguaje natural")
+    p_think = sub.add_parser("pensar", help="Ciclo completo de pensamiento")
+    p_think.add_argument("texto", nargs="+")
+    p_think.add_argument("--solo-respuesta", action="store_true")
+
+    p_ask = sub.add_parser("preguntar", help="Alias de pensar")
     p_ask.add_argument("texto", nargs="+")
 
     p_pulse = sub.add_parser("pulso", help="Chequea cuántas APIs responden")
@@ -54,8 +58,12 @@ def main(argv: list[str] | None = None) -> int:
             _print(mind.mercado())
         elif args.cmd == "conocer":
             _print(mind.conocimiento(" ".join(args.tema)))
-        elif args.cmd == "preguntar":
-            _print(mind.consultar(" ".join(args.texto)))
+        elif args.cmd in {"pensar", "preguntar"}:
+            thought = mind.pensar(" ".join(args.texto))
+            if args.cmd == "pensar" and getattr(args, "solo_respuesta", False):
+                print(thought.get("respuesta", ""))
+            else:
+                _print(thought)
         elif args.cmd == "pulso":
             _print(mind.pulso(args.limit))
         return 0
