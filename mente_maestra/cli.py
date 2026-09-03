@@ -7,7 +7,7 @@ import json
 import sys
 
 from .brain import MenteMaestra
-from .catalog import CATEGORIES
+from .registry import CATEGORIES
 
 
 def _print(data) -> None:
@@ -17,22 +17,22 @@ def _print(data) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="mente-maestra",
-        description="Inteligencia que piensa con 50 APIs públicas gratuitas.",
+        description="Inteligencia que piensa con 100 APIs públicas que aportan.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_list = sub.add_parser("listar", help="Ver las 50 APIs")
+    p_list = sub.add_parser("listar", help="Ver las 100 APIs")
     p_list.add_argument("--categoria", choices=CATEGORIES)
 
-    p_call = sub.add_parser("llamar", help="Llamar una API por id (1-50)")
+    p_call = sub.add_parser("llamar", help="Llamar una API por id (1-100)")
     p_call.add_argument("id", type=int)
 
-    p_fore = sub.add_parser("pronostico", help="Pronóstico clima + aire + sismos")
+    p_fore = sub.add_parser("pronostico", help="Clima + aire + alertas NWS")
     p_fore.add_argument("lugar", nargs="?", default="Houston, Texas")
 
-    sub.add_parser("mercado", help="FX + crypto + macro")
+    sub.add_parser("mercado", help="FX + crypto + miedo/codicia + fees")
 
-    p_know = sub.add_parser("conocer", help="Papers, wiki y repos de un tema")
+    p_know = sub.add_parser("conocer", help="Papers, wiki y modelos HF")
     p_know.add_argument("tema", nargs="+")
 
     p_think = sub.add_parser("pensar", help="Ciclo completo de pensamiento")
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     p_ask.add_argument("texto", nargs="+")
 
     p_pulse = sub.add_parser("pulso", help="Chequea cuántas APIs responden")
-    p_pulse.add_argument("--limit", type=int, default=12)
+    p_pulse.add_argument("--limit", type=int, default=20)
 
     args = parser.parse_args(argv)
     mind = MenteMaestra()
