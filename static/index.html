@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mente Maestra</title>
+  <link rel="icon" href="/static/avatar.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <aside class="rail">
+    <img class="brand-avatar" src="/static/avatar.svg" alt="Mente Maestra" />
+    <div class="brand">
+      <strong>Mente Maestra</strong>
+      <span>R.M.P · 50 APIs</span>
+    </div>
+    <button id="nuevo" type="button">Nuevo chat</button>
+    <p class="hint">Piensa con clima, mercado, ciencia y papers. Confianza visible en cada respuesta.</p>
+  </aside>
+
+  <main>
+    <header class="top">
+      <img class="mini" src="/static/avatar.svg" alt="" />
+      <div>
+        <h1>Mente Maestra</h1>
+        <p id="status">lista</p>
+      </div>
+    </header>
+
+    <section id="feed" class="feed">
+      <article class="row bot">
+        <img class="ava" src="/static/avatar.svg" alt="Mente Maestra" />
+        <div class="bubble">
+          Soy Mente Maestra. Pregúntame como aquí: clima, bitcoin, papers, Houston.
+          Voy a percibir, planear, recoger evidencia y darte un juicio con confianza.
+        </div>
+      </article>
+    </section>
+
+    <form id="composer" class="composer">
+      <textarea id="box" rows="1" placeholder="Pregunta a Mente Maestra" autofocus></textarea>
+      <button type="submit" id="send">Enviar</button>
+    </form>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
