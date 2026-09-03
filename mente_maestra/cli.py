@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 
+from .llm import descubrir
 from .registry import CATEGORIES
 from .una import get_mente
 
@@ -15,12 +16,12 @@ def _print(data) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="mente-maestra", description="Una sola mente. 100 APIs que aportan.")
+    parser = argparse.ArgumentParser(prog="mente-maestra", description="Una sola mente. Voz propia.")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_list = sub.add_parser("listar", help="Ver las 100 APIs")
+    p_list = sub.add_parser("listar")
     p_list.add_argument("--categoria", choices=CATEGORIES)
-    p_call = sub.add_parser("llamar", help="Llamar API por id")
+    p_call = sub.add_parser("llamar")
     p_call.add_argument("id", type=int)
     p_fore = sub.add_parser("pronostico")
     p_fore.add_argument("lugar", nargs="?", default="Houston, Texas")
@@ -34,7 +35,8 @@ def main(argv: list[str] | None = None) -> int:
     p_ask.add_argument("texto", nargs="+")
     p_pulse = sub.add_parser("pulso")
     p_pulse.add_argument("--limit", type=int, default=20)
-    sub.add_parser("quien", help="Identidad de la mente única")
+    sub.add_parser("quien")
+    sub.add_parser("voz", help="Qué motor de voz está vivo")
 
     args = parser.parse_args(argv)
     mente = get_mente()
@@ -57,7 +59,16 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "pulso":
         _print(mente.pulso(args.limit))
     elif args.cmd == "quien":
-        _print({"una": True, **mente.identidad, "memoria": len(mente.memoria)})
+        motor = descubrir()
+        _print({
+            "una": True,
+            **mente.identidad,
+            "memoria": len(mente.memoria),
+            "voz": {"motor": motor["id"], "modelo": motor.get("modelo")} if motor else {"motor": "propia"},
+        })
+    elif args.cmd == "voz":
+        motor = descubrir()
+        _print(motor or {"motor": "propia", "detalle": "Ningún Ollama/LM Studio/llama.cpp vivo. Usa voz local."})
     return 0
 
 
