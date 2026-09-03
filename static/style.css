@@ -1,0 +1,104 @@
+:root {
+  --bg: #0b0c0e;
+  --panel: #121417;
+  --line: #23262b;
+  --text: #ececec;
+  --mute: #9aa0a6;
+  --user: #1f2328;
+  --bot: #16181c;
+  --accent: #7dffb3;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 ui-sans-serif, system-ui, sans-serif;
+}
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 22px 18px;
+  background: #0e1013;
+}
+.brand-avatar { width: 72px; height: 72px; border-radius: 50%; display: block; }
+.brand { margin: 14px 0 22px; }
+.brand strong { display: block; font-size: 18px; }
+.brand span, .hint, #status { color: var(--mute); font-size: 13px; }
+#nuevo {
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+#nuevo:hover { border-color: var(--accent); }
+.hint { margin-top: 18px; }
+main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+.top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.top h1 { margin: 0; font-size: 16px; font-weight: 650; }
+.top p { margin: 0; }
+.mini { width: 36px; height: 36px; border-radius: 50%; }
+.feed {
+  overflow: auto;
+  padding: 28px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.row { display: flex; gap: 12px; max-width: 860px; width: 100%; margin: 0 auto; }
+.row.user { justify-content: flex-end; }
+.ava { width: 36px; height: 36px; border-radius: 50%; flex: none; }
+.bubble {
+  background: var(--bot);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  max-width: min(680px, 100%);
+}
+.row.user .bubble { background: var(--user); }
+.meta { margin-top: 8px; color: var(--mute); font-size: 12px; }
+.composer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 18px 22px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+textarea {
+  flex: 1;
+  resize: none;
+  min-height: 48px;
+  max-height: 160px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  padding: 12px 14px;
+  font: inherit;
+}
+button#send {
+  border: 0;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #08110c;
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+}
+button#send:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 800px) {
+  body { grid-template-columns: 1fr; }
+  .rail { display: none; }
+}
