@@ -1,4 +1,4 @@
-"""Cerebro de Mente Maestra: orquesta 50 APIs, pronostica y responde."""
+"""Cerebro de Mente Maestra: orquesta 50 APIs y piensa en ciclo."""
 
 from __future__ import annotations
 
@@ -6,14 +6,16 @@ from datetime import datetime, timezone
 from typing import Any
 
 from . import catalog
+from . import cortex
 from .client import ApiClient
 
 
 class MenteMaestra:
-    """Inteligencia ligera que se alimenta de APIs públicas gratuitas."""
+    """Inteligencia que se alimenta de APIs públicas y produce un juicio."""
 
     def __init__(self, timeout: float = 20.0):
         self.client = ApiClient(timeout=timeout)
+        self.memoria: list[dict[str, Any]] = []
 
     def listar(self, category: str | None = None) -> list[dict]:
         apis = catalog.by_category(category) if category else catalog.APIS
@@ -38,7 +40,6 @@ class MenteMaestra:
         return result
 
     def pulso(self, limit: int = 50) -> dict[str, Any]:
-        """Chequea salud de las APIs del catálogo."""
         results = []
         ok = 0
         for api in catalog.APIS[:limit]:
@@ -75,7 +76,6 @@ class MenteMaestra:
         return {"ok": False, "lugar": lugar, "lat": None, "lon": None, "raw": hit}
 
     def pronostico(self, lugar: str = "Houston, Texas") -> dict[str, Any]:
-        """Pronóstico 7 días + calidad de aire + amanecer + sismos."""
         geo = self.geocodificar(lugar)
         lat = geo.get("lat") or 29.7604
         lon = geo.get("lon") or -95.3698
@@ -104,7 +104,6 @@ class MenteMaestra:
         }
 
     def mercado(self) -> dict[str, Any]:
-        """Señales de FX + crypto + macro USA."""
         fx = self.llamar(13, {"from": "USD", "to": "EUR,MXN,COP,GBP"})
         crypto = self.llamar(
             15,
@@ -124,7 +123,6 @@ class MenteMaestra:
         }
 
     def conocimiento(self, tema: str) -> dict[str, Any]:
-        """Papers + wiki + léxico para desarrollar IA sobre un tema."""
         wiki = self.client.fetch(
             f"https://en.wikipedia.org/api/rest_v1/page/summary/{tema.replace(' ', '_')}"
         )
@@ -142,27 +140,75 @@ class MenteMaestra:
             "repos_github": repos.get("data"),
         }
 
-    def consultar(self, texto: str) -> dict[str, Any]:
-        """Enruta una pregunta en lenguaje natural a la capa útil."""
-        q = (texto or "").strip().lower()
-        if any(w in q for w in ("clima", "tiempo", "lluvia", "pronostic", "weather", "aire")):
-            lugar = _extraer_lugar(texto) or "Houston, Texas"
-            return {"ruta": "pronostico", "resultado": self.pronostico(lugar)}
-        if any(w in q for w in ("bitcoin", "crypto", "dolar", "dólar", "tipo de cambio", "fx", "mercado", "pib")):
-            return {"ruta": "mercado", "resultado": self.mercado()}
-        if any(w in q for w in ("paper", "investig", "arxiv", "ia", "ai", "modelo", "forecast")):
-            tema = texto.strip() or "time series forecasting"
-            return {"ruta": "conocimiento", "resultado": self.conocimiento(tema)}
-        if q.startswith("api ") or q.startswith("llama "):
-            try:
-                api_id = int("".join(ch for ch in q if ch.isdigit()) or "1")
-                return {"ruta": "llamar", "resultado": self.llamar(api_id)}
-            except Exception:
-                pass
+    def ciencia(self) -> dict[str, Any]:
+        iss = self.llamar(27)
+        neo = self.llamar(26)
+        sismos = self.llamar(5)
         return {
-            "ruta": "conocimiento",
-            "resultado": self.conocimiento(texto or "artificial intelligence"),
+            "iss": iss.get("data"),
+            "neo": neo.get("data"),
+            "sismos_mes": _resumen_sismos(sismos.get("data")),
         }
+
+    def pensar(self, texto: str) -> dict[str, Any]:
+        """Ciclo completo: percibir, planear, recoger, reflexionar, juzgar."""
+        percepcion = cortex.percibir(texto)
+        plan = cortex.planear(percepcion)
+        evidencia: dict[str, Any] = {"pasos_hechos": []}
+        traza = [{"fase": "percibir", "dato": percepcion}, {"fase": "planear", "dato": plan}]
+
+        lugar = percepcion.get("lugar") or "Houston, Texas"
+        tema = texto.strip() or "artificial intelligence"
+
+        for item in plan:
+            paso = item["paso"]
+            if paso == "pronostico":
+                evidencia["pronostico"] = self.pronostico(lugar)
+                evidencia["pasos_hechos"].append(paso)
+            elif paso == "mercado":
+                evidencia["mercado"] = self.mercado()
+                evidencia["pasos_hechos"].append(paso)
+            elif paso == "ciencia":
+                evidencia["ciencia"] = self.ciencia()
+                evidencia["pasos_hechos"].append(paso)
+            elif paso == "conocimiento":
+                evidencia["conocimiento"] = self.conocimiento(tema)
+                evidencia["pasos_hechos"].append(paso)
+            elif paso == "juzgar":
+                continue
+            traza.append({"fase": "actuar", "paso": paso, "por_que": item.get("por_que")})
+
+        reflexion = cortex.reflexionar(evidencia)
+        traza.append({"fase": "reflexionar", "dato": reflexion})
+        juicio = cortex.juzgar(percepcion, evidencia, reflexion)
+        traza.append({"fase": "juzgar", "dato": juicio["tesis"]})
+
+        out = {
+            "pregunta": texto,
+            "respuesta": juicio["respuesta"],
+            "tesis": juicio["tesis"],
+            "confianza": reflexion["confianza"],
+            "intenciones": percepcion["intenciones"],
+            "plan": plan,
+            "traza": traza,
+            "huecos": reflexion["huecos"],
+            "cadena": juicio["cadena"],
+        }
+        self.memoria.append(
+            {
+                "cuando": datetime.now(timezone.utc).isoformat(),
+                "pregunta": texto,
+                "tesis": juicio["tesis"],
+                "confianza": reflexion["confianza"],
+            }
+        )
+        out["memoria_n"] = len(self.memoria)
+        return out
+
+    def consultar(self, texto: str) -> dict[str, Any]:
+        """Pensar por defecto. Las rutas crudas siguen disponibles por método."""
+        thought = self.pensar(texto)
+        return {"ruta": "pensar", "resultado": thought}
 
     def close(self) -> None:
         self.client.close()
@@ -181,13 +227,7 @@ def _resumen_sismos(data: Any) -> dict[str, Any]:
     tops = []
     for feat in features[:5]:
         props = feat.get("properties") or {}
-        tops.append(
-            {
-                "lugar": props.get("place"),
-                "mag": props.get("mag"),
-                "url": props.get("url"),
-            }
-        )
+        tops.append({"lugar": props.get("place"), "mag": props.get("mag"), "url": props.get("url")})
     return {"count": len(features), "destacados": tops}
 
 
@@ -207,33 +247,19 @@ def _leer_clima(data: Any, geo: dict) -> str:
         extra = f" Máxima 7d {max(maxs)}C / mínima {min(mins)}C."
     if rain:
         extra += f" Lluvia acumulada pico {max(rain)} mm."
-    return (
-        f"Pronóstico para {lugar}: ahora {temp}C, viento {wind} km/h.{extra} "
-        "Fuente Open-Meteo (sin clave)."
-    )
+    return f"Pronóstico para {lugar}: ahora {temp}C, viento {wind} km/h.{extra} Fuente Open-Meteo."
 
 
 def _leer_mercado(fx: Any, crypto: Any) -> str:
     parts = []
     if isinstance(fx, dict) and fx.get("rates"):
         rates = fx["rates"]
-        parts.append(
-            "USD-> "
-            + ", ".join(f"{k} {v}" for k, v in list(rates.items())[:4])
-        )
+        parts.append("USD-> " + ", ".join(f"{k} {v}" for k, v in list(rates.items())[:4]))
     if isinstance(crypto, dict):
         for coin, info in list(crypto.items())[:3]:
-            usd = info.get("usd")
-            chg = info.get("usd_24h_change")
+            usd = (info or {}).get("usd")
+            chg = (info or {}).get("usd_24h_change")
             if usd is not None:
                 flag = "" if chg is None else f" ({chg:.2f}% 24h)"
                 parts.append(f"{coin} ${usd}{flag}")
     return " | ".join(parts) or "Mercado no disponible en este instante."
-
-
-def _extraer_lugar(texto: str) -> str | None:
-    lower = texto.lower()
-    for token in ("en ", "para ", "de "):
-        if token in lower:
-            return texto[lower.index(token) + len(token) :].strip(" ?!.") or None
-    return None
