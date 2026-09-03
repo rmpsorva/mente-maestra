@@ -10,11 +10,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from mente_maestra import ID, IDENTIDAD, NOMBRE, get_mente
+from mente_maestra.llm import descubrir
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 
-app = FastAPI(title=NOMBRE, version="1.3.1")
+app = FastAPI(title=NOMBRE, version="1.4.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -30,6 +31,7 @@ def home():
 @app.get("/salud")
 def salud():
     mente = get_mente()
+    motor = descubrir()
     return {
         "ok": True,
         "una": True,
@@ -37,6 +39,7 @@ def salud():
         "nombre": NOMBRE,
         "marca": IDENTIDAD,
         "memoria": len(mente.memoria),
+        "voz": {"motor": motor["id"], "modelo": motor.get("modelo")} if motor else {"motor": "propia", "modelo": None},
     }
 
 
@@ -53,4 +56,5 @@ def pensar(body: Pregunta):
         "huecos": out.get("huecos", []),
         "plan": [p.get("paso") for p in out.get("plan", [])],
         "memoria_n": out.get("memoria_n", 0),
+        "voz": out.get("voz"),
     }
