@@ -1,7 +1,6 @@
 """Hay una sola Mente Maestra.
 
-No se instancian cerebros en paralelo. Chat, CLI y API
-piden la misma instancia y la misma memoria en disco.
+Chat, CLI y API piden la misma instancia y la misma memoria.
 """
 
 from __future__ import annotations
@@ -21,15 +20,25 @@ _unica = None
 
 
 def get_mente():
-    """La única instancia. Crear otra es un error de diseño."""
     global _unica
     with _lock:
         if _unica is None:
             from .brain import MenteMaestra
 
-            _unica = MenteMaestra()
-            _unica.identidad = {"id": ID, "nombre": NOMBRE, "marca": IDENTIDAD}
-            _unica.memoria = _cargar()
+            mente = MenteMaestra()
+            mente.identidad = {"id": ID, "nombre": NOMBRE, "marca": IDENTIDAD}
+            mente.memoria = _cargar()
+            original = mente.pensar
+
+            def pensar_unico(texto: str):
+                out = original(texto)
+                guardar(mente.memoria)
+                out["una"] = True
+                out["identidad"] = mente.identidad
+                return out
+
+            mente.pensar = pensar_unico  # type: ignore[method-assign]
+            _unica = mente
         return _unica
 
 
@@ -45,5 +54,7 @@ def _cargar() -> list[dict[str, Any]]:
 
 def guardar(memoria: list[dict[str, Any]]) -> None:
     MEMORIA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    recorte = memoria[-80:]
-    MEMORIA_PATH.write_text(json.dumps(recorte, ensure_ascii=False, indent=2), encoding="utf-8")
+    MEMORIA_PATH.write_text(
+        json.dumps(memoria[-80:], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
