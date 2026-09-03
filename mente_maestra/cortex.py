@@ -40,7 +40,7 @@ def planear(percepcion: dict[str, Any]) -> list[dict[str, Any]]:
     mapa = [
         ("clima", "pronostico", "Señal ambiental y alertas NWS."),
         ("lugar", "pronostico", "Hay lugar explícito; anclar clima local."),
-        ("mercado", "mercado", "FX, crypto, fees y miedo/codicia."),
+        ("mercado", "mercado", "FX, crypto y miedo/codicia."),
         ("energia", "energia", "Intensidad de carbono de red."),
         ("salud", "salud", "Ensayos clínicos y señal FDA/OMS."),
         ("transito", "transito", "Tráfico aéreo OpenSky."),
@@ -59,17 +59,32 @@ def planear(percepcion: dict[str, Any]) -> list[dict[str, Any]]:
     return plan
 
 
+def _solida(bloque: Any) -> bool:
+    if not isinstance(bloque, dict):
+        return False
+    lect = str(bloque.get("lectura") or "")
+    if lect and "no disponible" not in lect.lower() and "no respondió" not in lect.lower() and "sin lectura" not in lect.lower():
+        return True
+    wiki = bloque.get("wikipedia") or {}
+    if isinstance(wiki, dict) and wiki.get("extract"):
+        return True
+    if bloque.get("iss") or bloque.get("sismos_mes"):
+        return True
+    return False
+
+
 def reflexionar(evidencia: dict[str, Any]) -> dict[str, Any]:
     huecos, peso = [], 0
-    for key, pts in (("pronostico", 2), ("mercado", 2), ("conocimiento", 2), ("energia", 1), ("salud", 1), ("transito", 1), ("ciencia", 1), ("media", 1)):
-        if evidencia.get(key):
+    pesos = {"pronostico": 3, "mercado": 3, "conocimiento": 2, "energia": 2, "salud": 1, "transito": 1, "ciencia": 1, "media": 1}
+    for key, pts in pesos.items():
+        if _solida(evidencia.get(key)):
             peso += pts
         elif key in (evidencia.get("pasos_hechos") or []):
-            huecos.append(f"{key} incompleto")
-    confianza = min(0.95, 0.22 + 0.1 * peso)
+            huecos.append(f"{key} débil")
+    confianza = min(0.93, 0.38 + 0.12 * peso)
     if huecos:
-        confianza = max(0.2, confianza - 0.12 * len(huecos))
-    return {"confianza": round(confianza, 2), "peso_evidencia": peso, "huecos": huecos, "suficiente": confianza >= 0.45}
+        confianza = max(0.28, confianza - 0.08 * len(huecos))
+    return {"confianza": round(confianza, 2), "peso_evidencia": peso, "huecos": huecos, "suficiente": confianza >= 0.5}
 
 
 def juzgar(percepcion: dict[str, Any], evidencia: dict[str, Any], reflexion: dict[str, Any]) -> dict[str, Any]:
@@ -78,7 +93,7 @@ def juzgar(percepcion: dict[str, Any], evidencia: dict[str, Any], reflexion: dic
         lineas.append("Ambiente: " + evidencia["pronostico"]["lectura"])
         nws = evidencia["pronostico"].get("alertas_nws") or 0
         if nws:
-            lineas.append(f"Alertas NWS activas en el punto: {nws}. Prioriza riesgo oficial sobre el modelo." )
+            lineas.append(f"Alertas NWS activas en el punto: {nws}. Prioriza riesgo oficial sobre el modelo.")
     if (evidencia.get("mercado") or {}).get("lectura"):
         lineas.append("Mercado: " + evidencia["mercado"]["lectura"])
     if (evidencia.get("energia") or {}).get("lectura"):
